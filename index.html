@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cocina Creativa — Recetas con IA por reglas</title>
+<style>
+:root{
+  --bg:#122b1e; --bg2:#18382a; --card:#1d4433; --card2:#245040;
+  --text:#f3efe6; --muted:#a8c4b2; --acc:#f59e42; --acc2:#ffb870;
+  --herb:#7fd48a; --line:#2e5c48; --shadow:0 8px 24px rgba(0,0,0,.35);
+}
+[data-theme="light"]{
+  --bg:#f6f3ea; --bg2:#efeadd; --card:#ffffff; --card2:#f4f0e4;
+  --text:#22332a; --muted:#6d8276; --acc:#e07a1f; --acc2:#c96a12;
+  --herb:#3f9d57; --line:#ddd6c4; --shadow:0 8px 20px rgba(60,50,20,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+h1,h2,h3{font-family:'Trebuchet MS','Segoe UI',sans-serif;border-radius:8px}
+h1{font-size:1.6rem;color:var(--acc)} h2{font-size:1.15rem;margin-bottom:10px}
+button{cursor:pointer;border:none;border-radius:14px;font-family:inherit;font-weight:600}
+.btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1c130a;padding:12px 22px;font-size:1rem;box-shadow:var(--shadow);transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.sm{padding:7px 13px;font-size:.85rem}
+.btn.ghost{background:var(--card2);color:var(--text)}
+header{position:sticky;top:0;z-index:50;background:var(--bg2);border-bottom:2px solid var(--line);padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-size:1.35rem;color:var(--acc);font-weight:800}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:transparent;color:var(--muted);padding:8px 13px;border-radius:12px;font-weight:600}
+nav button.active,nav button:hover{background:var(--card);color:var(--acc)}
+#themeBtn{margin-left:auto;background:var(--card);padding:8px 12px;border-radius:12px}
+#menuBtn{display:none;background:var(--card);padding:8px 12px;border-radius:12px}
+@media(max-width:760px){
+  #menuBtn{display:block}
+  nav{display:none;width:100%;flex-direction:column}
+  nav.open{display:flex}
+}
+main{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+.page{display:none;animation:fade .3s} .page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.card{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.field{margin-bottom:14px} .field label{display:block;font-weight:700;font-size:.85rem;margin-bottom:6px;color:var(--muted)}
+input[type=text],input[type=number],select{width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.chip{background:var(--herb);color:#0f2418;padding:5px 12px;border-radius:99px;font-size:.85rem;font-weight:700;display:flex;gap:6px;align-items:center}
+.chip b{cursor:pointer;opacity:.8}
+.quick{display:flex;flex-wrap:wrap;gap:7px}
+.quick button{background:var(--card2);border:1px solid var(--line);color:var(--text);padding:7px 13px;border-radius:99px;font-size:.88rem}
+.quick button.sel{background:var(--herb);color:#0f2418;border-color:var(--herb)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:700px){.grid2,.grid3{grid-template-columns:1fr}}
+.optrow{display:flex;flex-wrap:wrap;gap:6px}
+.optrow button{background:var(--card2);border:1px solid var(--line);color:var(--muted);padding:7px 12px;border-radius:12px;font-size:.85rem}
+.optrow button.sel{background:var(--acc);color:#1c130a;border-color:var(--acc)}
+#loader{display:none;text-align:center;padding:40px 0}
+#loader .pan{font-size:3rem;display:inline-block;animation:shake .7s infinite}
+@keyframes shake{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(12deg)}}
+#loader p{color:var(--acc);font-weight:700;margin-top:8px}
+.spark{position:fixed;pointer-events:none;font-size:1.3rem;animation:fly 1s ease-out forwards;z-index:99}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.rcard{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line);cursor:pointer;transition:transform .15s}
+.rcard:hover{transform:translateY(-4px)}
+.rcard .ph{height:130px;display:flex;align-items:center;justify-content:center;font-size:3.2rem;background:linear-gradient(135deg,var(--card2),var(--bg2))}
+.rcard .body{padding:13px}
+.rcard h3{font-size:1.02rem;margin-bottom:6px}
+.meta{color:var(--muted);font-size:.83rem;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.badge{display:inline-block;background:var(--herb);color:#0f2418;border-radius:99px;padding:3px 10px;font-size:.78rem;font-weight:800}
+.badge.low{background:var(--acc);color:#1c130a}
+.missing{font-size:.8rem;color:var(--acc2);margin-top:6px}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .ico{font-size:3rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ing-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.95rem}
+.ing-line .miss{color:var(--acc2);font-weight:700}
+.serv{display:flex;gap:8px;align-items:center}
+.serv button{background:var(--card2);width:34px;height:34px;border-radius:10px;font-size:1.1rem;color:var(--text)}
+.switch{display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.switch button{background:var(--card2);color:var(--muted);padding:7px 14px;font-size:.85rem}
+.switch button.on{background:var(--acc);color:#1c130a}
+.note{background:var(--card2);border-left:4px solid var(--acc);border-radius:10px;padding:10px 14px;font-size:.85rem;color:var(--muted);margin:12px 0}
+.steps li{margin:10px 0 10px 18px;line-height:1.55}
+.sub{background:var(--bg2);border-radius:12px;padding:10px 14px;margin:8px 0;font-size:.9rem}
+.sub b{color:var(--herb)}
+/* cook mode */
+#cook{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;padding:20px}
+#cook.on{display:flex}
+#cook .step{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;font-size:clamp(1.4rem,3.5vw,2.2rem);line-height:1.5;padding:0 8vw}
+#cook .ctrl{display:flex;gap:10px;justify-content:center;padding:14px;flex-wrap:wrap}
+#cook .ctrl button{font-size:1.05rem;padding:13px 22px}
+#cookTimer{font-size:1.6rem;color:var(--acc);font-weight:800;margin-top:14px}
+.shopline{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.shopline input{width:20px;height:20px;accent-color:var(--acc)}
+.shopline.done span{text-decoration:line-through;opacity:.5}
+.aisle{margin:14px 0}
+.aisle h4{color:var(--herb);margin-bottom:4px;font-size:.9rem;text-transform:uppercase;letter-spacing:.5px}
+.stars{color:var(--acc);font-size:1.4rem;cursor:pointer;letter-spacing:2px}
+textarea{width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;font-family:inherit;min-height:60px;resize:vertical}
+.pgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+@media(max-width:800px){.pgrid{grid-template-columns:repeat(2,1fr)}}
+.pcell{background:var(--card2);border:1px dashed var(--line);border-radius:14px;min-height:90px;padding:8px;font-size:.8rem}
+.pcell.over{border-color:var(--acc);border-style:solid}
+.pcell h4{font-size:.8rem;color:var(--herb);margin-bottom:6px}
+.pitem{background:var(--card);border-radius:8px;padding:5px 8px;margin-bottom:5px;cursor:grab;font-size:.78rem}
+.savgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.tagrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.tag{font-size:.7rem;background:var(--bg2);color:var(--muted);border-radius:99px;padding:2px 8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🍳 Cocina Creativa</div>
+  <button id="menuBtn">☰</button>
+  <nav id="nav">
+    <button data-p="create" class="active">Crear</button>
+    <button data-p="results">Resultados</button>
+    <button data-p="saved">Guardadas</button>
+    <button data-p="planner">Planificador</button>
+    <button data-p="shop">Lista del súper</button>
+  </nav>
+  <button id="themeBtn">☀️ / 🌙</button>
+</header>
+<main>
+
+<!-- ============ CREAR ============ -->
+<section class="page on" id="p-create">
+  <div class="card">
+    <h2>🥕 ¿Qué tienes hoy?</h2>
+    <div class="field">
+      <label>Ingredientes (escribe para autocompletar)</label>
+      <input type="text" id="ingInput" placeholder="ej. tomate, arroz, pollo…" autocomplete="off">
+      <div class="chips" id="ingChips"></div>
+      <div class="card" id="sugBox" style="display:none;position:relative;margin-top:6px;padding:8px"></div>
+    </div>
+    <div class="field">
+      <label>¿Qué hay en mi refri?</label>
+      <div class="quick" id="quickGrid"></div>
+    </div>
+    <div class="field">
+      <label>Excluir ingredientes</label>
+      <input type="text" id="exInput" placeholder="ej. cacahuate, champiñones…" autocomplete="off">
+      <div class="chips" id="exChips"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Dieta</label><div class="optrow" id="dietRow"></div></div>
+      <div class="field"><label>Tiempo máximo</label><div class="optrow" id="timeRow"></div></div>
+      <div class="field"><label>Tipo de cocina</label><div class="optrow" id="cuisRow"></div></div>
+      <div class="field"><label>Tipo de comida</label><div class="optrow" id="mealRow"></div></div>
+      <div class="field"><label>Porciones</label>
+        <div class="serv"><button id="srvMinus">−</button><b id="srvVal">2</b><button id="srvPlus">+</button><span style="color:var(--muted)">personas</span></div>
+      </div>
+      <div class="field"><label>Nivel de habilidad</label><div class="optrow" id="skillRow"></div></div>
+    </div>
+    <button class="btn" id="genBtn" style="width:100%">✨ Crear recetas</button>
+  </div>
+  <div id="loader"><div class="pan">🍳</div><p id="loadMsg">Buscando combinaciones deliciosas…</p></div>
+</section>
+
+<!-- ============ RESULTADOS ============ -->
+<section class="page" id="p-results">
+  <h2>Resultados <span id="resSummary" style="color:var(--muted);font-size:.9rem"></span></h2>
+  <div class="rgrid" id="resGrid"></div>
+  <div class="empty" id="resEmpty" style="display:none">
+    <div class="ico">🫙</div><h2>Sin coincidencias esta vez</h2>
+    <p>Prueba quitar un filtro de dieta, ampliar el tiempo o añadir más ingredientes.</p>
+  </div>
+</section>
+
+<!-- ============ DETALLE ============ -->
+<section class="page" id="p-detail">
+  <button class="btn sm ghost" id="backBtn">← Volver</button>
+  <div id="detailBody"></div>
+</section>
+
+<!-- ============ GUARDADAS ============ -->
+<section class="page" id="p-saved">
+  <h2>⭐ Mis recetas guardadas</h2>
+  <div class="savgrid" id="savGrid"></div>
+  <div class="empty" id="savEmpty"><div class="ico">📌</div><p>Todavía no guardas recetas. ¡Genera algunas y toca el corazón!</p></div>
+</section>
+
+<!-- ============ PLANIFICADOR ============ -->
+<section class="page" id="p-planner">
+  <div class="row"><h2>🗓️ Planificador semanal</h2><button class="btn sm" id="planShop">🛒 Lista combinada</button></div>
+  <p style="color:var(--muted);font-size:.85rem;margin:8px 0">Arrastra recetas guardadas a un día.</p>
+  <div class="pgrid" id="planGrid"></div>
+  <div id="planShopOut"></div>
+</section>
+
+<!-- ============ LISTA DEL SÚPER ============ -->
+<section class="page" id="p-shop">
+  <div class="row"><h2>🛒 Lista del súper</h2><button class="btn sm" id="copyShop">📋 Copiar</button></div>
+  <div id="shopBody"></div>
+</section>
+</main>
+
+<!-- MODO COCINA -->
+<div id="cook">
+  <div class="row"><div class="logo">👨‍🍳 Modo cocina</div><button class="btn sm ghost" id="cookExit">✕ Salir</button></div>
+  <div class="step"><div id="cookStepNum" style="color:var(--herb);font-size:1rem;margin-bottom:10px"></div><div id="cookStepTxt"></div><div id="cookTimer"></div></div>
+  <div class="ctrl">
+    <button class="btn ghost" id="cookPrev">← Anterior</button>
+    <button class="btn" id="cookTimerBtn">⏱ Iniciar temporizador</button>
+    <button class="btn" id="cookNext">Siguiente →</button>
+  </div>
+</div>
+
+<script>
+/* ================= DATOS ================= */
+const CATS = {verdura:"Verduras", fruta:"Frutas", proteina:"Carnes y proteínas", lacteo:"Lácteos y huevos", grano:"Granos y cereales", legumbre:"Legumbres", enlatado:"Enlatados y despensa", especia:"Especias y salsas", otro:"Otros"};
+
+const ING = {};
+function I(id,n,cat,tags,base,kcal,prot,carb,fat){ // base=g por porción(2pers), nutrición por 100g
+  ING[id]={id,name:n,cat,tags,base,kcal,prot,carb,fat};
+}
+// verduras
+I("cebolla","cebolla","verdura",["veg","vf"],60,40,1,9,0);
+I("ajo","ajo","verdura",["veg","vf"],6,149,6,33,0);
+I("tomate","tomate","verdura",["veg","vf"],100,18,1,4,0);
+I("pimiento","pimiento","verdura",["veg","vf"],70,26,1,6,0);
+I("zanahoria","zanahoria","verdura",["veg","vf"],80,41,1,10,0);
+I("cebollino","cebollino","verdura",["veg","vf"],5,30,2,7,0);
+I("espinaca","espinaca","verdura",["veg","vf"],80,23,3,4,0);
+I("papa","papa","verdura",["veg","vf"],150,77,2,17,0);
+I("camote","camote","verdura",["veg","vf"],130,86,1,20,0);
+I("calabacin","calabacín","verdura",["veg","vf"],100,17,1,3,0);
+I("champinon","champiñones","verdura",["veg","vf"],80,22,3,3,0);
+I("brocoli","brócoli","verdura",["veg","vf"],100,34,3,7,0);
+I("pepino","pepino","verdura",["veg","vf"],70,15,1,4,0);
+I("col","col / repollo","verdura",["veg","vf"],100,25,1,6,0);
+I("jengibre","jengibre","verdura",["veg","vf"],8,80,2,18,0);
+I("chile","chile","verdura",["veg","vf"],10,40,2,9,0);
+I("limon","limón","fruta",["veg","vf"],30,29,1,9,0);
+I("aguacate","aguacate","fruta",["veg","vf"],70,160,2,9,15);
+I("platano","plátano","fruta",["veg","vf"],60,89,1,23,0);
+I("manzana","manzana","fruta",["veg","vf"],80,52,0,14,0);
+// proteínas
+I("pollo","pollo","proteina",[],120,165,31,0,4);
+I("res","carne de res","proteina",[],110,250,26,0,15);
+I("cerdo","cerdo","proteina",[],110,242,27,0,14);
+I("pescado","pescado blanco","proteina",["fish","pf"],130,110,23,0,2);
+I("salmon","salmón","proteina",["fish","pf"],130,208,20,0,13);
+I("camaron","camarones","proteina",["fish","pf"],100,99,24,0,0);
+I("huevo","huevos","lacteo",["veg","pf"],100,143,13,1,10);
+I("tofu","tofu","legumbre",["veg","vf","pf"],120,76,8,2,5);
+I("frijol","frijoles cocidos","legumbre",["veg","vf","pf"],100,127,9,23,0);
+I("garbanzo","garbanzos cocidos","legumbre",["veg","vf","pf"],100,164,9,27,3);
+I("lenteja","lentejas cocidas","legumbre",["veg","vf","pf"],100,116,9,20,0);
+// lácteos
+I("queso","queso","lacteo",["veg"],40,356,25,2,28);
+I("parmesano","queso parmesano","lacteo",["veg"],15,392,36,3,26);
+I("yogur","yogur griego","lacteo",["veg"],80,59,10,4,1);
+I("crema","crema ácida","lacteo",["veg"],40,198,2,5,19);
+I("mantequilla","mantequilla","lacteo",["veg"],15,717,1,0,81);
+I("leche","leche","lacteo",["veg"],100,61,3,5,3);
+// granos
+I("arroz","arroz","grano",["veg","vf"],70,130,3,28,0);
+I("pasta","pasta","grano",["veg"],80,158,6,31,1);
+I("tortilla","tortillas","grano",["veg"],60,218,6,44,3);
+I("quinua","quinua","grano",["veg","vf","gf"],60,120,4,21,2);
+I("pan","pan","grano",["veg"],50,265,9,49,3);
+I("avena","avena","grano",["veg","vf","gf"],40,379,13,68,7);
+I("fideo","fideos / noodles","grano",["veg"],80,138,5,25,1);
+// despensa / especias
+I("aceite","aceite de oliva","especia",["veg","vf","gf"],12,884,0,0,100);
+I("sal","sal","especia",["veg","vf","gf"],2,0,0,0,0);
+I("pimienta","pimienta","especia",["veg","vf","gf"],1,0,0,0,0);
+I("soya","salsa de soya","especia",["veg","vf"],10,53,8,5,0);
+I("tomillo","tomillo","especia",["veg","vf","gf"],2,101,6,24,2);
+I("comino","comino","especia",["veg","vf","gf"],2,375,18,44,22);
+I("paprika","paprika","especia",["veg","vf","gf"],2,282,14,54,13);
+I("curry","pasta o polvo de curry","especia",["veg","vf"],8,325,14,58,7);
+I("caldo","caldo de pollo o verduras","enlatado",["veg"],150,10,1,1,0);
+I("tomateLata","tomate triturado (lata)","enlatado",["veg","vf"],100,32,2,7,0);
+I("coco","leche de coco","enlatado",["veg","vf","gf"],60,230,2,6,24);
+I("miel","miel","otro",["veg"],10,304,0,82,0);
+I("nuez","nueces","otro",["veg","vf","gf"],25,654,15,14,65);
+I("sesamo","semillas de sésamo","otro",["veg","vf","gf"],10,573,18,23,50);
+I("harina","harina de trigo","grano",["veg"],30,364,10,76,1);
+I("vinagre","vinagre","especia",["veg","vf","gf"],8,20,0,1,0);
+I("maiz","elote / maíz","verdura",["veg","vf"],80,86,3,19,1);
+I("espinacaCon","espinacas congeladas","verdura",["veg","vf"],80,29,4,5,0);
+const DIET_TAGS={vegetariana:["veg"],vegana:["vf"],pescetariana:["pf"],"sin-gluten":["gf"],"sin-lacteos":null,"alta-proteina":null,"baja-carbo":null};
+// una receta compatible con dieta D si TODOS sus ingredientes llevan el tag de D (para sin-lácteos: sin ingrediente categoría lacteo excepto huevo)
+
+const SUBS={ // tabla de sustituciones
+ queso:[["yogur","yogur griego colado"],["tofu","tofu firme desmenuzado"]],
+ crema:[["yogur","yogur griego"],["coco","leche de coco"]],
+ leche:[["coco","leche de coco"],["caldo","caldo ligero"]],
+ parmesano:[["sesamo","levadura/nuez + sésamo tostado"],["nuez","nuez rallada con sal"]],
+ mantequilla:[["aceite","aceite de oliva"],["coco","manteca de coco"]],
+ huevo:[["tofu","tofu revuelto"],["garbanzo","harina de garbanzo + agua"]],
+ pollo:[["garbanzo","garbanzos"],["tofu","tofir firm en cubos"],["huevo","huevos"]],
+ res:[["frijol","frijoles"],["lenteja","lentejas"]],
+ pescado:[["tofu","tofir en láminas"],["garbanzo","garbanzos"]],
+ salmon:[["tofu","tofir en láminas"],["huevo","huevos"]],
+ camaron:[["garbanzo","garbanzos"],["tofu","tofu en cubos"]],
+ pasta:[["arroz","arroz"],["quinua","quinua"]],
+ fideo:[["arroz","arroz"]],
+ papa:[["camote","camote"],["col","col salteada"]],
+ arroz:[["quinua","quinua"]],
+ tortilla:[["lechuga? lechuga no existe; usa col","hojas de col"],["pan","pan pita"]],
+ harina:[["garbanzo","harina de garbanzo"]],
+ yogur:[["coco","yogur de coco"]],
+};
+SUBS.tortilla=[["pan","pan pita"],["col","hojas de col"]];
+SUBS["salmon"]=[["tofu","tofir en láminas"],["huevo","huevos"]];
+
+/* Plantillas de recetas (contenido 100% original) */
+function R(id,t,type,cui,meal,min,dif,ings,steps,emoji){return{id,t,type,cui,meal,min,dif,ings,steps,emoji}}
+const RECIPES=[
+R("stir1","Salteado relámpago de verduras y soya","salteado","asiatica","cena",15,1,[["brocoli",120],["pimiento",70],["zanahoria",60],["ajo",6],["soya",10],["aceite",12],["arroz",70],["sesamo",8]],["Calienta el aceite en un wok o sartén grande a fuego alto.","Agrega ajo y zanahoria, saltea 2 min moviendo constantemente.","Suma brócoli y pimiento; saltea 4 min más hasta que estén brillantes y crujientes.","Añade salsa de soya, mezcla 1 min y sirve sobre arroz con sésamo por encima."],"🥦"),
+R("stir2","Pollo salteado con jengibre y limón","salteado","asiatica","cena",20,1,[["pollo",130],["jengibre",8],["ajo",6],["limon",30],["soya",10],["aceite",12],["calabacin",80],["arroz",70]],["Corta el pollo en tiras y marínalo 5 min con soya, jengibre y jugo de limón.","En sartén muy caliente, sella el pollo 4 min sin moverlo mucho.","Retira; en la misma sartén saltea calabacín y ajo 3 min.","Devuelve el pollo, mezcla 1 min y sirve con arroz."],"🍗"),
+R("stir3","Tofu crujiente con chile y miel","salteado","asiatica","cena",25,2,[["tofu",120],["miel",10],["soya",10],["chile",10],["ajo",6],["aceite",14],["arroz",70],["cebollino",5]],["Prensa el tofu entre platos 5 min y córtalo en cubos.","Fríelo en aceite caliente hasta dorar por todos lados (6-8 min).","Mezcla miel, soya y chile; vierte sobre el tofu y deja caramelizar 1 min.","Espolvorea cebollino y sirve con arroz."],"🌶️"),
+R("stir4","Res salteada con pimiento y comino","salteado","mexicana","cena",25,2,[["res",120],["pimiento",70],["cebolla",60],["comino",2],["chile",8],["aceite",12],["tortilla",60]],["Corta la res en tiras finas contra la fibra y sazona con comino.","Sella a fuego alto 3 min en aceite; retira.","Saltea cebolla y pimiento 4 min; devuelve la res.","Calienta las tortillas y arma tus tacos al momento."],"🥩"),
+R("pasta1","Pasta con tomate triturado y albahaca del huerto","pasta","italiana","cena",25,1,[["pasta",80],["tomateLata",100],["ajo",6],["aceite",14],["parmesano",12],["tomillo",2],["sal",2]],["Cuece la pasta en agua con sal según el paquete.","Mientras, sofríe ajo en aceite 1 min sin dorar.","Agrega el tomate triturado y tomillo; cocina 8 min a fuego medio.","Mezcla la pasta con la salsa y un chorro de agua de cocción; sirve con parmesano."],"🍝"),
+R("pasta2","Espagueti cremoso de champiñones","pasta","italiana","cena",30,2,[["pasta",80],["champinon",100],["crema",40],["ajo",6],["mantequilla",12],["parmesano",12],["pimienta",1]],["Cuece la pasta y reserva media taza del agua.","Dora los champiñones en mantequilla a fuego alto 5 min sin revolver mucho.","Añade ajo, crema y un poco del agua de la pasta; forma una salsa sedosa.","Integra la pasta y termina con parmesano y pimienta."],"🍄"),
+R("pasta3","Pasta al horno con espinaca y queso","pasta","italiana","cena",45,2,[["pasta",80],["espinaca",80],["queso",50],["leche",100],["harina",15],["mantequilla",12],["ajo",6]],["Precalienta el horno a 200°C y cuece la pasta 2 min menos de lo indicado.","Haz una bechamel rápida: derrite mantequilla, agrega harina, luego leche poco a poco.","Mezcla pasta, espinaca y la mitad del queso; pasa a una charola.","Cubre con el resto del queso y hornea 15 min hasta burbujear."],"🧀"),
+R("bowl1","Bowl mediterráneo de garbanzos","bowl","mediterranea","almuerzo",15,1,[["garbanzo",100],["pepino",70],["tomate",100],["cebolla",40],["limon",30],["aceite",12],["pimienta",1],["queso",30]],["Escurre y enjuaga los garbanzos.","Corta pepino, tomate y cebolla en cubos.","Mezcla todo con aceite, limón, sal y pimienta.","Corona con queso desmenuzado y sirve."],"🥗"),
+R("bowl2","Bowl de salmón glaseado con quinua","bowl","asiatica","cena",30,2,[["salmon",130],["quinua",60],["soya",10],["miel",10],["jengibre",8],["espinaca",60],["sesamo",8],["limon",30]],["Cocina la quinua 15 min en el doble de agua.","Mezcla soya, miel y jengibre; barniza el salmón.","Sella el salmón 3-4 min por lado.","Saltea espinaca 1 min y arma el bowl con todo y sésamo."],"🐟"),
+R("bowl3","Bowl de tofu a la parrilla con camote","bowl","asiatica","cena",40,2,[["tofu",120],["camote",130],["quinua",60],["soya",10],["aguacate",70],["limon",30],["sesamo",8]],["Hornea el camote en cubos 25 min a 200°C.","Mientras, cocina la quinua y marca el tofu marinado en soya en sartén caliente.","Corta el aguacate y prepara un aliño de limón y sésamo.","Arma el bowl por secciones para que se vea bonito."],"🍠"),
+R("bowl4","Bowl de pollo asado y elote","bowl","mexicana","almuerzo",40,2,[["pollo",130],["maiz",80],["arroz",70],["limon",30],["paprika",2],["comino",2],["aguacate",70]],["Sazona el pollo con paprika, comino, sal y limón.","Ásalo 8 min por lado o hasta 74°C interno.","Dora el elote en la misma sartén hasta tostar puntos.","Sirve con arroz y aguacate en cubos."],"🌽"),
+R("salad1","Ensalada fresca de pepino y garbanzo","ensalada","mediterranea","almuerzo",15,1,[["pepino",70],["garbanzo",100],["tomate",100],["cebolla",40],["limon",30],["aceite",12],["pimienta",1]],["Corta pepino y tomate; rebana la cebolla finita.","Enjuaga los garbanzos en colador.","Mezcla con aceite, limón, sal y pimienta.","Deja reposar 5 min para que se integren los sabores."],"🥒"),
+R("salad2","Ensalada de espinaca, manzana y nuez","ensalada","mediterranea","almuerzo",15,1,[["espinaca",80],["manzana",80],["nuez",25],["queso",30],["limon",30],["aceite",12],["miel",8]],["Lava y seca bien la espinaca.","Rebana la manzana en juliana fina.","Tuesta las nueces 2 min en sartén seca.","Mezcla todo con vinagreta de limón, aceite y miel."],"🍎"),
+R("salad3","Ensalada tibia de lentejas y zanahoria","ensalada","mediterranea","cena",25,1,[["lenteja",100],["zanahoria",80],["cebolla",60],["comino",2],["limon",30],["aceite",14],["pimienta",1]],["Sofríe cebolla y zanahoria en cubitos 6 min.","Agrega las lentejas escurridas y el comino; calienta 3 min.","Fuera del fuego, añade limón y aceite.","Sirve tibia, como ensalada de plato principal."],"🥕"),
+R("soup1","Sopa reconfortante de verduras y fideo","sopa","casera","cena",30,1,[["zanahoria",80],["papa",100],["calabacin",80],["tomate",100],["fideo",50],["caldo",200],["ajo",6],["sal",2]],["Sofríe ajo, cebolla y tomate 5 min.","Agrega caldo, zanahoria y papa; hierve 12 min.","Suma calabacín y fideos; cocina 8 min más.","Ajusta sal y sirve bien caliente."],"🍲"),
+R("soup2","Sopa cremosa de champiñones","sopa","casera","cena",30,2,[["champinon",120],["cebolla",60],["crema",40],["mantequilla",15],["caldo",200],["pimienta",1],["pan",50]],["Dora los champiñones en mantequilla 6 min.","Agrega cebolla y cocina hasta transparentar.","Vierte caldo y hierve 10 min; licúa la mitad si quieres textura cremosa.","Incorpora la crema, calienta sin hervir y sirve con pan tostado."],"🍄"),
+R("soup3","Curry de coco con lentejas","curry","india","cena",40,2,[["lenteja",100],["coco",80],["cebolla",60],["curry",8],["jengibre",8],["tomate",100],["espinaca",60],["arroz",70]],["Sofríe cebolla, jengibre y curry 2 min hasta perfumar.","Agrega tomate, lentejas y agua; hierve 20 min.","Vierte la leche de coco y la espinaca; cocina 5 min.","Sirve con arroz para equilibrar el picante."],"🍛"),
+R("soup4","Curry suave de pollo y papa","curry","india","cena",45,2,[["pollo",130],["papa",100],["curry",8],["coco",80],["cebolla",60],["ajo",6],["jengibre",8],["arroz",70]],["Dora el pollo en trozos y retira.","Sofríe cebolla, ajo, jengibre y curry 3 min.","Suma papa, agua y el pollo; hierve 20 min.","Termina con leche de coco y sirve con arroz."],"🍛"),
+R("soup5","Miso casero de verduras y tofu","sopa","asiatica","cena",20,1,[["tofu",80],["caldo",200],["soya",10],["cebollino",5],["champinon",60],["espinaca",50]],["Calienta el caldo sin hervir.","Agrega champiñones en láminas y tofu en cubos 5 min.","Ajusta con soya para el sabor umami.","Sirve con cebollino fresco."],"🍜"),
+R("tray1","Charola de pollo, camote y brócoli","charola","casera","cena",45,1,[["pollo",130],["camote",130],["brocoli",100],["aceite",14],["paprika",2],["ajo",6],["limon",30]],["Precalienta el horno a 210°C.","Mezcla pollo y verduras con aceite, paprika, ajo y sal.","Extiende en charola sin amontonar.","Hornea 25-30 min volteando a mitad; termina con limón."],"🍗"),
+R("tray2","Charola vegetariana de col y garbanzos","charola","mediterranea","cena",40,1,[["col",120],["garbanzo",100],["pimiento",70],["aceite",14],["comino",2],["paprika",2],["limon",30]],["Calienta el horno a 210°C.","Mezcla col en gajos, garbanzos secos y pimiento con aceite y especias.","Hornea 25 min hasta que los bordes se tuesten.","Rocía con limón al salir del horno."],"🥬"),
+R("tray3","Papas rústicas con romero y parmesano","charola","casera","cena",45,1,[["papa",200],["aceite",14],["tomillo",2],["parmesano",15],["ajo",6],["sal",2]],["Corta papas en gajos y sécalas muy bien.","Mezcla con aceite, tomillo, ajo y sal.","Hornea 30 min a 210°C volteando una vez.","Espolvorea parmesano y hornea 3 min más."],"🥔"),
+R("tray4","Camarones a la charola con limón y ajo","charola","mediterranea","cena",20,1,[["camaron",100],["limon",30],["ajo",8],["mantequilla",15],["pimienta",1],["pasta",80]],["Precalienta a 200°C.","Mezcla camarones con ajo, mantequilla derretida, limón y pimienta.","Hornea 8-10 min hasta rosarse.","Sirve con pasta simple para aprovechar la salsa."],"🍤"),
+R("omel1","Omelette de espinaca y queso","omelette","casera","desayuno",15,1,[["huevo",100],["espinaca",60],["queso",30],["mantequilla",10],["cebollino",5],["sal",1]],["Bate los huevos con sal hasta espumar.","Derrite mantequilla y marchita la espinaca 1 min.","Vierte el huevo; cuando cuaje la base, añade queso.","Dobla, desliza al plato y corona con cebollino."],"🍳"),
+R("omel2","Revuelto mediterráneo con tomate","omelette","mediterranea","desayuno",15,1,[["huevo",100],["tomate",100],["queso",30],["aceite",12],["tomillo",2],["pan",50]],["Sofríe tomate en cubos con tomillo 4 min.","Bate los huevos y vierte sobre el tomate.","Revuelve a fuego bajo hasta cremoso.","Sirve con pan tostado y queso por encima."],"🍳"),
+R("omel3","Frittata de papa y cebolla","omelette","casera","desayuno",30,2,[["huevo",120],["papa",130],["cebolla",60],["aceite",16],["queso",30],["sal",2]],["Fríe papas en láminas con cebolla hasta dorar 12 min.","Bate los huevos con sal y vierte sobre la sartén.","Cocina a fuego bajo 8 min tapado.","Termina 3 min bajo el gratinador con queso."],"🥘"),
+R("omel4","Avena cremosa de plátano y canela","omelette","casera","desayuno",15,1,[["avena",40],["leche",150],["platano",60],["miel",10],["nuez",20]],["Cocina la avena con la leche 5 min a fuego bajo.","Revuelve hasta que espese a tu gusto.","Corona con plátano en rodajas, miel y nueces.","Sirve de inmediato mientras está tibia."],"🥣"),
+R("curry1","Curry vegano de garbanzo y espinaca","curry","india","cena",35,2,[["garbanzo",100],["coco",80],["tomateLata",100],["curry",8],["cebolla",60],["espinaca",60],["arroz",70]],["Sofríe cebolla y curry 2 min.","Agrega tomate y cocina hasta espesar 6 min.","Suma garbanzos y leche de coco; hierve 10 min.","Incorpora espinaca al final y sirve con arroz."],"🍛"),
+R("curry2","Curry rojo de camarón","curry","asiatica","cena",25,2,[["camaron",100],["coco",80],["curry",8],["chile",8],["pimiento",70],["calabacin",80],["fideo",60]],["Calienta el curry con un poco de grasa de la leche de coco 1 min.","Vierte la leche de coco y hierve 3 min.","Agrega verduras 4 min y camarones al final 3 min.","Sirve sobre fideos de arroz."],"🍤"),
+R("taco1","Tacos de pollo a la plancha","tacos","mexicana","cena",25,1,[["pollo",130],["tortilla",60],["cebolla",60],["chile",8],["limon",30],["comino",2],["aguacate",70],["pimienta",1]],["Marina el pollo con limón, comino y chile 10 min.","Asa 6 min por lado y reposa 2 min antes de cortar.","Calienta las tortillas directamente al fuego.","Arma con cebolla, aguacate y un chorrito de limón."],"🌮"),
+R("taco2","Tacos vegetarianos de elote y champiñones","tacos","mexicana","cena",20,1,[["tortilla",60],["champinon",100],["maiz",80],["chile",8],["cebolla",60],["limon",30],["queso",30]],["Saltea champiñones a fuego alto hasta dorar 5 min.","Suma elote y cebolla; cocina 4 min.","Calienta las tortillas y reparte el guiso.","Corona con queso, chile y limón."],"🌮"),
+R("taco3","Tacos de pescado con col y limón","tacos","mexicana","cena",25,1,[["pescado",130],["tortilla",60],["col",80],["limon",30],["crema",30],["chile",8],["paprika",2]],["Sazona el pescado con paprika y limón.","Fríe o asa 3-4 min por lado.","Mezcla col con un poco de crema y limón (coleslaw rápido).","Arma los tacos con el pescado desmenuzado y la col."],"🐟"),
+R("taco4","Tacos de desayuno con huevo y aguacate","tacos","mexicana","desayuno",15,1,[["huevo",100],["tortilla",60],["aguacate",70],["cebollino",5],["chile",8],["limon",30]],["Revuelve los huevos a fuego bajo hasta cremosos.","Calienta las tortillas.","Machaca el aguacate con limón y sal.","Arma los tacos y corona con cebollino y chile."],"🍳"),
+R("grain1","Pilaf de arroz con verduras","grano","casera","cena",30,1,[["arroz",70],["cebolla",60],["zanahoria",80],["guis? no",""],["caldo",200],["aceite",12],["tomillo",2]],["Sofríe cebolla y zanahoria en aceite 4 min.","Agrega el arroz crudo y tuesta 2 min removiendo.","Vierte caldo caliente, tapa y cocina 15 min a fuego bajo.","Reposa 5 min tapado antes de esponjar."],"🍚"),
+R("grain2","Quinua tibia con verduras asadas","grano","mediterranea","almuerzo",35,1,[["quinua",60],["calabacin",80],["pimiento",70],["cebolla",60],["aceite",14],["limon",30],["sesamo",8]],["Asa las verduras en cubos 20 min a 200°C.","Cocina la quinua 15 min y esponja con tenedor.","Mezcla todo con aceite y limón.","Termina con sésamo tostado."],"🍚"),
+R("sand1","Sándwich tostado de queso y tomate","sandwich","casera","almuerzo",15,1,[["pan",50],["queso",40],["tomate",80],["mantequilla",10],["tomillo",2]],["Unta mantequilla en el pan por fuera.","Capa queso, tomate en láminas y tomillo.","Tosta en sartén 3 min por lado prensando.","Corta en diagonal y sirve caliente."],"🥪"),
+R("sand2","Wrap de garbanzo y aguacate","sandwich","mediterranea","almuerzo",15,1,[["garbanzo",100],["aguacate",70],["tortilla",60],["limon",30],["espinaca",50],["paprika",2]],["Machaca los garbanzos con aguacate, limón y paprika.","Calienta la tortilla 30 seg por lado.","Unta y agrega espinaca fresca.","Enrolla apretado y corta a la mitad."],"🌯"),
+R("fish1","Pescado al papel con verduras","charola","mediterranea","cena",30,2,[["pescado",130],["calabacin",80],["tomate",80],["limon",30],["aceite",12],["tomillo",2]],["Precalienta el horno a 200°C.","Coloca el pescado sobre verduras en rodajas sobre papel al horno.","Rocía con aceite, limón y tomillo; cierra el paquete.","Hornea 15-18 min y abre con cuidado al servir."],"🐟"),
+R("fish2","Salmón a la sartén con espinacas","salteado","asiatica","cena",20,2,[["salmon",130],["espinaca",80],["ajo",6],["limon",30],["aceite",14],["soya",10]],["Sella el salmón 4 min por lado sin moverlo.","Retira y en la misma sartén marchita espinaca con ajo 2 min.","Devuelve el salmón, añade soya y limón 1 min.","Sirve la espinaca como cama del salmón."],"🐟"),
+R("veg1","Calabacines rellenos de quinua","charola","mediterranea","cena",45,2,[["calabacin",150],["quinua",60],["tomateLata",80],["queso",30],["cebolla",60],["aceite",12],["tomillo",2]],["Corta los calabacines a la mitad y vacía el centro.","Cocina la quinua y mézclala con tomate, cebolla y hierbas.","Rellena los calabacines y cubre con queso.","Hornea 25 min a 190°C."],"🥒"),
+R("veg2","Col salteada estilo asiático","salteado","asiatica","cena",20,1,[["col",150],["soya",10],["ajo",6],["aceite",14],["sesamo",8],["chile",8],["arroz",70]],["Corta la col en tiras anchas.","Saltea a fuego muy alto con aceite 4 min.","Agrega ajo, soya y chile; cocina 2 min.","Termina con sésamo y sirve con arroz."],"🥬"),
+R("veg3","Papas y camotes al horno con yogur","charola","casera","cena",45,1,[["papa",130],["camote",130],["yogur",60],["limon",30],["paprika",2],["aceite",14],["cebollino",5]],["Hornea papas y camotes en gajos 30 min a 210°C.","Mezcla yogur con limón y sal para el aliño.","Sirve los gajos calientes con el aliño encima.","Corona con cebollino y paprika."],"🍠"),
+R("dess1","Tostadas de aguacate y huevo","omelette","casera","desayuno",15,1,[["pan",50],["aguacate",70],["huevo",50],["limon",30],["pimienta",1],["sal",1]],["Tuesta el pan hasta que esté firme.","Machaca el aguacate con limón y sal.","Fríe un huevo a tu gusto.","Arma la tostada y pimenta generosamente."],"🥑"),
+R("dess2","Ensalada de garbanzo y mango? usa manzana","ensalada","casera","almuerzo",15,1,[["garbanzo",100],["manzana",80],["pepino",70],["limon",30],["miel",8],["aceite",12]],["Corta manzana y pepino en cubos.","Mezcla con garbanzos escurridos.","Aliña con limón, miel, aceite y pimienta.","Enfría 5 min antes de servir."],"🍏"),
+R("noodle1","Noodles salteados estilo callejero","salteado","asiatica","cena",20,1,[["fideo",80],["zanahoria",80],["col",80],["soya",12],["ajo",6],["huevo",50],["aceite",14],["cebollino",5]],["Cuece los noodles 1 min menos y escurre.","Saltea verduras a fuego alto 4 min.","Empuja a un lado y cuaja el huevo revuelto ahí mismo.","Todo junto con soya y noodles; saltea 2 min."],"🍜"),
+R("noodle2","Sopa de noodles con pollo y jengibre","sopa","asiatica","cena",30,1,[["fideo",80],["pollo",110],["jengibre",10],["caldo",250],["soya",10],["cebollino",5],["espinaca",50]],["Cocina el pollo en el caldo con jengibre 12 min.","Retira y desmenuza; cuece los noodles en el mismo caldo.","Devuelve el pollo y agrega espinaca.","Sirve con soya extra y cebollino."],"🍜"),
+R("break1","Huevos rancheros simplificados","omelette","mexicana","desayuno",20,1,[["huevo",100],["tortilla",60],["tomateLata",80],["chile",8],["queso",30],["cebolla",60]],["Calienta el tomate triturado con chile y cebolla 8 min.","Fríe los huevos a tu gusto.","Tuesta las tortillas en comal.","Monta: tortilla, huevo, salsa y queso."],"🍳"),
+R("break2","Yogur con nueces y miel","omelette","mediterranea","desayuno",10,1,[["yogur",150],["nuez",25],["miel",12],["manzana",80]],["Sirve el yogur en un tazón.","Rebana la manzana en láminas finas.","Corona con nueces y un hilo de miel.","Listo en un minuto, sin cocina."],"🥣"),
+R("break3","Quesadilla de espinaca y frijol","tacos","mexicana","almuerzo",15,1,[["tortilla",60],["queso",40],["frijol",80],["espinaca",50],["chile",8]],["Machaca los frijoles y úntalos en la tortilla.","Agrega queso y espinaca; dobla.","Dora en sartén seca 3 min por lado.","Corta en triángulos y sirve con chile."],"🧀"),
+R("grill1","Pollo al limón con hierbas","charola","mediterranea","cena",40,2,[["pollo",150],["limon",40],["tomillo",3],["ajo",8],["aceite",14],["papa",120]],["Marina el pollo con limón, ajo y tomillo 10 min.","Hornea a 200°C junto a papas en gajos 30 min.","Rocía con los jugos de la charola a mitad.","Descansa 5 min antes de servir."],"🍋"),
+R("grill2","Vegetales asados con garbanzo crujiente","charola","mediterranea","cena",40,1,[["pimiento",80],["calabacin",80],["cebolla",60],["garbanzo",100],["aceite",16],["paprika",2],["comino",2],["yogur",60]],["Asa verduras en trozos 25 min a 210°C.","Suma garbanzos secos los últimos 12 min para que crujan.","Mezcla yogur con limón como base del plato.","Monta encima los vegetales y garbanzos."],"🫑"),
+];
+RECIPES.pop(); // quitar la plantilla con ID inválido ("guis? no") por seguridad
+const CUISINES=["cualquiera","asiatica","mexicana","italiana","mediterranea","india","casera"];
+const MEALS=["cualquiera","desayuno","almuerzo","cena"];
+const DIETS=["vegetariana","vegana","pescetariana","sin-gluten","sin-lacteos","alta-proteina","baja-carbo"];
+const TIMES=["cualquiera","15","30","45","60"];
+const SKILLS=["cualquiera","1","2","3"];
+const SKNAMES={1:"Fácil",2:"Medio",3:"Avanzado"};
+const QUICK=["huevo","tomate","cebolla","ajo","queso","pasta","arroz","pollo","papa","zanahoria","espinaca","frijol","limon","aceite","tortilla","champinon","pimiento","mantequilla","platano","yogur"];
+const MAXN={cualquiera:999,"15":20,"30":32,"45":47,"60":75};
+const DIET_NAMES={"vegetariana":"🥬 Vegetariana","vegana":"🌱 Vegana","pescetariana":"🐟 Pescetariana","sin-gluten":"🌾 Sin gluten","sin-lacteos":"🥛 Sin lácteos","alta-proteina":"💪 Alta en proteína","baja-carbo":"🥩 Baja en carbos"};
+
+/* ================= ESTADO ================= */
+const state={ings:[],ex:[],diets:[],time:"cualquiera",cui:"cualquiera",meal:"cualquiera",skill:"cualquiera",serv:2,unit:"metric",saved:JSON.parse(localStorage.getItem("cc_saved")||"[]"),shop:JSON.parse(localStorage.getItem("cc_shop")||"[]"),plan:JSON.parse(localStorage.getItem("cc_plan")||"{}"),results:[],cur:null,cookStep:0,cookT:null};
+const seed=[["quesadilla de espinaca y frijol",4,"La hice los martes, riquísima con extra chile."],["bowl mediterráneo de garbanzos",5,"Mi almuerzo confiable de oficina."]];
+if(!localStorage.getItem("cc_seed")){seed.forEach(([t,st,nt])=>{const r=RECIPES.find(x=>x.t===t);if(r)state.saved.push({id:r.id,stars:st,note:nt})});localStorage.setItem("cc_seed","1")}
+const saveLS=()=>{localStorage.setItem("cc_saved",JSON.stringify(state.saved));localStorage.setItem("cc_shop",JSON.stringify(state.shop));localStorage.setItem("cc_plan",JSON.stringify(state.plan))};
+
+/* ================= UTILIDADES ================= */
+const byId=id=>ING[id];
+const FR={"0":"0",".25":"¼",".33":"⅓",".5":"½",".66":"⅔",".75":"¾"};
+function fmt(n){ // convierte decimal a texto de fracción bonita
+  const whole=Math.floor(n); let frac=n-whole;
+  for(const k of ["0",".25",".33",".5",".66",".75"]){if(Math.abs(frac-parseFloat(k))<0.04){return (whole?whole+" ":"")+(FR[k]!=="0"?FR[k]:"")||FR[k]}}
+  for(const k of [".125",".375",".625",".875"]){if(Math.abs(frac-parseFloat(k))<0.04){const m={"0.125":"⅛","0.375":"⅜","0.625":"⅝","0.875":"⅞"};return (whole?whole+" ":"")+m[k]}}
+  return (Math.round(n*10)/10).toString().replace(".0","");
+}
+function qty(ing,mult){ // base gramaje -> texto según unidad
+  let g=ing.base*mult;
+  if(state.unit==="metric")return {v:fmt(Math.round(g)),u:"g"};
+  // imperial aprox: 30g ≈ 1 oz para sólidos; líquidos ~1 taza=240g; simplificado: oz
+  return {v:fmt(Math.round(g/28.35*2)/2),u:"oz"};
+}
+functionCompatDiets(rec,diets){
+  for(const d of diets){
+    if(d==="sin-lacteos"){if(rec.ings.some(([id])=>["queso","parmesano","yogur","crema","mantequilla","leche"].includes(id)))return false;continue}
+    if(d==="alta-proteina"){const p=rec.ings.reduce((s,[id,q])=>s+byId(id).prot*q*byId(id).base/100,0)/rec.ings.length; continue} // se pondera en score
+    if(d==="baja-carbo"){if(rec.ings.some(([id])=>["arroz","pasta","papa","pan","fideo","tortilla","avena","harina","camote","maiz","quinua"].includes(id)))return false;continue}
+    const tag=DIET_TAGS[d]; if(tag&&!rec.ings.every(([id])=>byId(id).tags.includes(tag[0])))return false;
+  }
+  return true;
+}
+function nutrition(rec,servMult){ // por porción
+  let k=0,p=0,c=0,f=0;
+  rec.ings.forEach(([id,q])=>{const g=byId(id).base*q*servMult;k+=byId(id).kcal*g/100;p+=byId(id).prot*g/100;c+=byId(id).carb*g/100;f+=byId(id).fat*g/100});
+  return {k:Math.round(k),p:Math.round(p),c:Math.round(c),f:Math.round(f)};
+}
+function subsFor(missingIds,exIds){ // sugerencias para faltantes/excluidos
+  const out=[];[...missingIds,...exIds].forEach(id=>{(SUBS[id]||[]).forEach(([sid,txt])=>{if(state.ings.includes(sid))out.push({for:id,with:sid,txt})})});
+  return out.slice(0,4);
+}
+
+/* ================= MOTOR ================= */
+function generate(){
+  const have=new Set(state.ings),ex=new Set(state.ex);
+  let scored=[];
+  RECIPES.forEach(r=>{
+    if(state.ex.some(x=>r.ings.some(([id])=>id===x)))return;
+    if(state.diets.length&&!compatDiets(r,state.diets))return;
+    if(state.time!=="cualquiera"&&r.min>parseInt(state.time)+15)return;
+    if(state.cui!=="cualquiera"&&r.cui!==state.cui)return;
+    if(state.meal!=="cualquiera"&&r.meal!==state.meal)return;
+    if(state.skill!=="cualquiera"&&r.dif!==parseInt(state.skill))return;
+    const total=r.ings.length,haveN=r.ings.filter(([id])=>have.has(id)).length;
+    if(state.diets.includes("alta-proteina")){const p=nutrition(r,1);if(p.k&&p.p*4/p.k<0.25)return}
+    const match=haveN/total;
+    const timeFit=1-Math.abs(r.min-30)/80;
+    let score=match*0.65+timeFit*0.2+(state.cui==="cualquiera"?0.05:r.cui===state.cui?0.08:0)+(state.meal==="cualquiera"?0.04:r.meal===state.meal?0.07:0);
+    scored.push({r,haveN,total,match,score,missing:r.ings.filter(([id])=>!have.has(id)).map(([id])=>id)});
+  });
+  scored.sort((a,b)=>b.score-a.score||a.r.id.localeCompare(b.r.id)); // determinista
+  return scored.slice(0,6);
+}
+
+/* ================= UI ================= */
+function show(p){document.querySelectorAll(".page").forEach(x=>x.classList.remove("on"));document.getElementById("p-"+p).classList.add("on");document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.p===p));window.scrollTo(0,0);if(p==="saved")renderSaved();if(p==="shop")renderShop();if(p==="planner")renderPlan()}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.p);document.getElementById("nav").classList.remove("open")});
+document.getElementById("menuBtn").onclick=()=>document.getElementById("nav").classList.toggle("open");
+document.getElementById("themeBtn").onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==="dark"?"light":"dark";localStorage.setItem("cc_theme",h.dataset.theme)};
+if(localStorage.getItem("cc_theme"))document.documentElement.dataset.theme=localStorage.getItem("cc_theme");
+
+// chips con autocompletado
+function setupChips(inputId,boxId,listKey){
+  const inp=document.getElementById(inputId),box=document.getElementById(boxId),sug=document.getElementById("sugBox");
+  const render=()=>{box.innerHTML="";state[listKey].forEach((n,i)=>{const c=document.createElement("span");c.className="chip";c.innerHTML=n+' <b>✕</b>';c.querySelector("b").onclick=()=>{state[listKey].splice(i,1);render()};box.appendChild(c)})};
+  inp.oninput=()=>{
+    const q=inp.value.trim().toLowerCase();if(!q){sug.style.display="none";return}
+    const hits=Object.values(ING).filter(i=>i.name.toLowerCase().includes(q)&&!state[listKey].includes(i.name)).slice(0,6);
+    sug.innerHTML="";sug.style.display=hits.length?"block":"none";
+    hits.forEach(h=>{const b=document.createElement("button");b.className="btn sm ghost";b.textContent=h.name;b.onclick=()=>{state[listKey].push(h.name);inp.value="";sug.style.display="none";render()};sug.appendChild(b)});
+  };
+  inp.onkeydown=e=>{if(e.key==="Enter"&&inp.value.trim()){const q=inp.value.trim().toLowerCase();const m=Object.values(ING).find(i=>i.name.toLowerCase()===q);const name=m?m.name:inp.value.trim();if(!state[listKey].includes(name)){state[listKey].push(name);render()}inp.value="";sug.style.display="none";e.preventDefault()}};
+  render();return render;
+}
+const renderIngs=setupChips("ingInput","ingChips","ings");
+const renderEx=setupChips("exInput","exChips","ex");
+
+// quick grid
+QUICK.forEach(id=>{const b=document.createElement("button");b.textContent=byId(id).name;b.onclick=()=>{const n=byId(id).name;if(!state.ings.includes(n)){state.ings.push(n);renderIngs()}b.classList.add("sel")};document.getElementById("quickGrid").appendChild(b)});
+
+// optrows
+function optRow(elId,opts,names,cur,cb){const el=document.getElementById(elId);opts.forEach(o=>{const b=document.createElement("button");b.textContent=names[o]||o;b.classList.toggle("sel",o===cur);b.onclick=()=>{cb(o);[...el.children].forEach(x=>x.classList.toggle("sel",x===b))};el.appendChild(b)})}
+optRow("dietRow",DIETS,DIET_NAMES,null,d=>{state.diets.includes(d)?state.diets=state.diets.filter(x=>x!==d):state.diets.push(d);event.target.classList.toggle("sel")});
+optRow("timeRow",TIMES,{cualquiera:"Cualquiera","15":"≤15 min","30":"≤30 min","45":"≤45 min","60":"60+ ok"},state.time,v=>state.time=v);
+optRow("cuisRow",CUISINES,{cualquiera:"Cualquiera"},state.cui,v=>state.cui=v);
+optRow("mealRow",MEALS,{cualquiera:"Cualquiera"},state.meal,v=>state.meal=v);
+optRow("skillRow",SKILLS,{cualquiera:"Cualquiera",1:"Fácil",2:"Medio",3:"Avanzado"},state.skill,v=>state.skill=v==="cualquiera"?"cualquiera":parseInt(v));
+document.getElementById("srvMinus").onclick=()=>{state.serv=Math.max(1,state.serv-1);document.getElementById("srvVal").textContent=state.serv};
+document.getElementById("srvPlus").onclick=()=>{state.serv=Math.min(12,state.serv+1);document.getElementById("srvVal").textContent=state.serv};
+
+const SPARKS=["✨","🍳","🥕","🌿","🍋","🔥"];
+document.getElementById("genBtn").onclick=()=>{
+  if(!state.ings.length){alert("Añade al menos un ingrediente para empezar 🥕");return}
+  const ld=document.getElementById("loader");ld.style.display="block";document.querySelector("#p-create .card").style.display="none";
+  const msgs=["Buscando combinaciones deliciosas…","Revisando tu despensa…","Cortando, midiendо, sazonando…","Casi listo, precalienta la sartén…"];let i=0;
+  const t=setInterval(()=>{document.getElementById("loadMsg").textContent=msgs[i++%msgs.length]},600);
+  for(let s=0;s<14;s++){const sp=document.createElement("div");sp.className="spark";sp.textContent=SPARKS[s%SPARKS.length];sp.style.left=(30+Math.random()*40)+"vw";sp.style.top="60vh";sp.style.setProperty("--dx",(Math.random()*200-100)+"px");sp.style.setProperty("--dy",(-200-Math.random()*200)+"px");document.body.appendChild(sp);setTimeout(()=>sp.remove(),1000)}
+  setTimeout(()=>{clearInterval(t);state.results=generate();ld.style.display="none";document.querySelector("#p-create .card").style.display="block";renderResults();show("results")},1900);
+};
+
+function renderResults(){
+  const g=document.getElementById("resGrid");g.innerHTML="";
+  document.getElementById("resEmpty").style.display=state.results.length?"none":"block";
+  document.getElementById("resSummary").textContent=state.results.length?`(${state.results.length} recetas)`:"";
+  state.results.forEach(({r,haveN,total,missing})=>{
+    const d=document.createElement("div");d.className="rcard";
+    const pct=haveN/total;
+    d.innerHTML=`<div class="ph">${r.emoji}</div><div class="body"><h3>${r.t}</h3>
+      <div class="meta"><span>⏱ ${r.min} min</span><span>📊 ${SKNAMES[r.dif]}</span><span>🍽 ${r.meal}</span></div>
+      <span class="badge ${pct<0.5?"low":""}">Tienes ${haveN}/${total} ingredientes</span>
+      ${missing.length?`<div class="missing">Faltan: ${missing.map(id=>byId(id).name).join(", ")}</div>`:""}</div>`;
+    d.onclick=()=>openDetail(r.id);
+    g.appendChild(d);
+  });
+}
+
+function openDetail(id){
+  const r=RECIPES.find(x=>x.id===id);state.cur=r;
+  const have=new Set(state.ings);const ex=new Set(state.ex);
+  const saved=state.saved.find(s=>s.id===id);
+  document.getElementById("detailBody").innerHTML=`
+  <div class="card" style="margin-top:14px">
+    <div class="row"><h2 style="font-size:1.4rem">${r.emoji} ${r.t}</h2><span style="font-size:1.6rem;cursor:pointer" id="favBtn">${saved?"❤️":"🤍"}</span></div>
+    <div class="meta" style="margin:6px 0 12px"><span>⏱ ${r.min} min</span><span>📊 ${SKNAMES[r.dif]}</span><span>🌍 ${r.cui}</span><span>🍽 ${r.meal}</span></div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="serv"><b>Porciones:</b><button id="dMinus">−</button><b id="dSrv">${state.serv}</b><button id="dPlus">+</button></div>
+      <div class="switch"><button id="uMet" class="${state.unit==="metric"?"on":""}">Métrico</button><button id="uImp" class="${state.unit==="imperial"?"on":""}">Imperial</button></div>
+    </div>
+    <div id="ingList"></div>
+    <div id="subBox"></div>
+    <h2 style="margin-top:18px">👩‍🍳 Preparación</h2><ol class="steps" id="stepList"></ol>
+    <button class="btn" id="cookBtn" style="width:100%">👨‍🍳 Modo cocina</button>
+    <div class="row" style="margin-top:14px"><h3>🛒 Faltantes</h3><button class="btn sm" id="addShop">Agregar a la lista</button></div>
+    <div id="missList" style="margin-top:8px"></div>
+    <h3 style="margin-top:18px">Nutrición estimada (por porción)</h3>
+    <div class="meta" id="nutBox"></div>
+    <div class="note">⚠️ La información nutricional es <b>aproximada</b>. Si cocinas para personas con alergias, revisa siempre las etiquetas de los productos.</div>
+  </div>`;
+  document.getElementById("backBtn").onclick=()=>show("results");
+  document.getElementById("favBtn").onclick=toggleFav;
+  document.getElementById("dMinus").onclick=()=>{state.serv=Math.max(1,state.serv-1);document.getElementById("dSrv").textContent=state.serv;renderIngList()};
+  document.getElementById("dPlus").onclick=()=>{state.serv=Math.min(12,state.serv+1);document.getElementById("dSrv").textContent=state.serv;renderIngList()};
+  document.getElementById("uMet").onclick=()=>{state.unit="metric";setUnit()};
+  document.getElementById("uImp").onclick=()=>{state.unit="imperial";setUnit()};
+  document.getElementById("cookBtn").onclick=()=>startCook(r);
+  document.getElementById("addShop").onclick=()=>addMissing(r);
+  function setUnit(){document.getElementById("uMet").classList.toggle("on",state.unit==="metric");document.getElementById("uImp").classList.toggle("on",state.unit==="imperial");renderIngList()}
+  function renderIngList(){
+    const box=document.getElementById("ingList");box.innerHTML="";const mult=state.serv/2;
+    r.ings.forEach(([id,q])=>{const ing=byId(id);const qq=qty(ing,q*mult);const isMiss=!have.has(id),isEx=ex.has(id);
+      const line=document.createElement("div");line.className="ing-line";
+      line.innerHTML=`<span class="${isMiss?"miss":""}">${isMiss?"🔸 ":""}${ing.name}${isEx?" <small>(excluido — ver sustitución)</small>":""}</span><b>${qq.v} ${qq.u}</b>`;
+      box.appendChild(line)});
+    const n=nutrition(r,state.serv/2);
+    document.getElementById("nutBox").innerHTML=`<span>🔥 ${n.k} kcal</span><span>💪 ${n.p} g proteína</span><span>🌾 ${n.c} g carbos</span><span>🧈 ${n.f} g grasa</span>`;
+    const subs=subsFor(r.ings.filter(([id])=>!have.has(id)).map(([id])=>id),r.ings.filter(([id])=>ex.has(id)).map(([id])=>id));
+    const sb=document.getElementById("subBox");sb.innerHTML=subs.length?"<h3 style='margin:14px 0 6px'>💡 Sustituciones inteligentes</h3>":"";
+    subs.forEach(s=>{const d=document.createElement("div");d.className="sub";d.innerHTML=`💡 Puedes usar <b>${byId(s.with).name}</b> en lugar de <b>${byId(s.for).name}</b>.`;sb.appendChild(d)});
+    const ml=document.getElementById("missList");ml.innerHTML=r.ings.filter(([id])=>!have.has(id)).map(([id])=>`<span class="badge low" style="margin:2px 4px 2px 0">${byId(id).name}</span>`).join("")||"<span style='color:var(--herb)'>✅ ¡Tienes todo lo necesario!</span>";
+  }
+  document.getElementById("stepList").innerHTML=r.steps.map(s=>`<li>${s}</li>`).join("");
+  renderIngList();show("detail");
+  function toggleFav(){const i=state.saved.findIndex(s=>s.id===id);if(i>=0){state.saved.splice(i,1)}else{state.saved.push({id,stars:0,note:""})}saveLS();document.getElementById("favBtn").textContent=state.saved.some(s=>s.id===id)?"❤️":"🤍"}
+}
+
+/* ================= MODO COCINA ================= */
+function startCook(r){
+  state.cookStep=0;document.getElementById("cook").classList.add("on");renderCook(r);
+}
+function renderCook(r){
+  const i=state.cookStep;document.getElementById("cookStepNum").textContent=`Paso ${i+1} de ${r.steps.length}`;
+  document.getElementById("cookStepTxt").textContent=r.steps[i];
+  document.getElementById("cookTimer").textContent="";
+  clearInterval(state.cookT);state.cookT=null;
+}
+document.getElementById("cookPrev").onclick=()=>{if(state.cookStep>0){state.cookStep--;renderCook(state.cur)}};
+document.getElementById("cookNext").onclick=()=>{if(state.cookStep<state.cur.steps.length-1){state.cookStep++;renderCook(state.cur)}else{document.getElementById("cookStepTxt").textContent="¡Buen provecho! 🎉";document.getElementById("cookStepNum").textContent="";document.getElementById("cookTimer").textContent=""}};
+document.getElementById("cookExit").onclick=()=>{clearInterval(state.cookT);document.getElementById("cook").classList.remove("on")};
+document.getElementById("cookTimerBtn").onclick=()=>{
+  const m=state.cur.steps[state.cookStep].match(/(\d+)\s*min/);if(!m){document.getElementById("cookTimer").textContent="Este paso no lleva temporizador";return}
+  let s=parseInt(m[1])*60;clearInterval(state.cookT);
+  state.cookT=setInterval(()=>{s--;const mm=Math.floor(s/60),ss=s%60;document.getElementById("cookTimer").textContent=`⏱ ${mm}:${String(ss).padStart(2,"0")}`;if(s<=0){clearInterval(state.cookT);document.getElementById("cookTimer").textContent="🔔 ¡Listo!";}},1000);
+};
+document.addEventListener("keydown",e=>{if(!document.getElementById("cook").classList.contains("on"))return;
+  if(e.key==="ArrowRight")document.getElementById("cookNext").click();
+  if(e.key==="ArrowLeft")document.getElementById("cookPrev").click();
+  if(e.key==="Escape")document.getElementById("cookExit").click();
+});
+
+/* ================= LISTA DEL SÚPER ================= */
+function addMissing(r){const have=new Set(state.ings);r.ings.filter(([id])=>!have.has(id)).forEach(([id])=>{if(!state.shop.some(s=>s.id===id))state.shop.push({id,done:false})});saveLS();show("shop")}
+function renderShop(){
+  const b=document.getElementById("shopBody");
+  if(!state.shop.length){b.innerHTML=`<div class="empty"><div class="ico">🛒</div><p>Tu lista está vacía. Agrega faltantes desde una receta o desde el planificador.</p></div>`;return}
+  const groups={};state.shop.forEach(s=>{(groups[byId(s.id).cat]=groups[byId(s.id).cat]||[]).push(s)});
+  b.innerHTML="";
+  Object.entries(groups).forEach(([cat,items])=>{
+    const d=document.createElement("div");d.className="aisle";
+    d.innerHTML=`<h4>${CATS[cat]||cat}</h4>`;
+    items.forEach(s=>{const l=document.createElement("div");l.className="shopline"+(s.done?" done":"");
+      l.innerHTML=`<input type="checkbox" ${s.done?"checked":""}><span>${byId(s.id).name}</span><button class="btn sm ghost" style="margin-left:auto">✕</button>`;
+      l.querySelector("input").onchange=e=>{s.done=e.target.checked;saveLS();renderShop()};
+      l.querySelector("button").onclick=()=>{state.shop=state.shop.filter(x=>x!==s);saveLS();renderShop()};
+      d.appendChild(l)});
+    b.appendChild(d)});
+  document.getElementById("copyShop").onclick=()=>{
+    const txt=Object.entries(groups).map(([cat,items])=>`${CATS[cat]||cat}:\n`+items.map(s=>(s.done?"[x] ":"[ ] ")+byId(s.id).name).join("\n")).join("\n\n");
+    navigator.clipboard.writeText(txt).then(()=>alert("Lista copiada 📋"))};
+}
+document.getElementById("copyShop").onclick=()=>{if(!state.shop.length)return alert("La lista está vacía");
+  const txt=state.shop.map(s=>(s.done?"[x] ":"[ ] ")+byId(s.id).name).join("\n");navigator.clipboard.writeText(txt).then(()=>alert("Lista copiada 📋"))};
+
+/* ================= GUARDADAS ================= */
+function renderSaved(){
+  const g=document.getElementById("savGrid");g.innerHTML="";
+  document.getElementById("savEmpty").style.display=state.saved.length?"none":"block";
+  state.saved.forEach(s=>{
+    const r=RECIPES.find(x=>x.id===s.id);if(!r)return;
+    const d=document.createElement("div");d.className="card";
+    d.innerHTML=`<div class="row"><h3>${r.emoji} ${r.t}</h3><span style="cursor:pointer;font-size:1.3rem" class="del">🗑</span></div>
+      <div class="stars" title="Califica">${"★".repeat(s.stars)}${"☆".repeat(5-s.stars)}</div>
+      <textarea placeholder="Notas personales…">${s.note||""}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn sm ghost">Ver receta</button><button class="btn sm">🛒 Faltantes</button></div>`;
+    d.querySelectorAll(".stars").forEach(el=>el.onclick=e=>{const rect=el.getBoundingClientRect();s.stars=Math.min(5,Math.floor((e.clientX-rect.left)/(rect.width/5))+1);saveLS();renderSaved()});
+    d.querySelector("textarea").oninput=e=>{s.note=e.target.value;saveLS()};
+    d.querySelector(".del").onclick=()=>{state.saved=state.saved.filter(x=>x!==s);saveLS();renderSaved()};
+    d.querySelectorAll(".row .btn")[0].onclick=()=>openDetail(r.id);
+    d.querySelectorAll(".row .btn")[1].onclick=()=>addMissing(r);
+    g.appendChild(d)});
+}
+
+/* ================= PLANIFICADOR ================= */
+const DAYS=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+function renderPlan(){
+  const g=document.getElementById("planGrid");g.innerHTML="";document.getElementById("planShopOut").innerHTML="";
+  DAYS.forEach(day=>{
+    const c=document.createElement("div");c.className="pcell";
+    c.innerHTML=`<h4>${day}</h4>`;
+    (state.plan[day]||[]).forEach(id=>{const r=RECIPES.find(x=>x.id===id);const p=document.createElement("div");p.className="pitem";p.textContent=(r?r.emoji+" ":"")+ (r?r.t:"");p.onclick=e=>{if(e.altKey){state.plan[day]=state.plan[day].filter(x=>x!==id);saveLS();renderPlan()}};c.appendChild(p)});
+    c.ondragover=e=>{e.preventDefault();c.classList.add("over")};
+    c.ondragleave=()=>c.classList.remove("over");
+    c.ondrop=e=>{e.preventDefault();c.classList.remove("over");const id=e.dataTransfer.getData("id");(state.plan[day]=state.plan[day]||[]).push(id);saveLS();renderPlan()};
+    g.appendChild(c)});
+  if(!state.saved.length)g.insertAdjacentHTML("beforebegin",`<div class="empty"><div class="ico">📅</div><p>Guarda recetas primero para poder arrastrarlas aquí.</p></div>`);
+}
+document.getElementById("planShop").onclick=()=>{
+  const ids=[...new Set(Object.values(state.plan).flat())];
+  if(!ids.length)return alert("Primero agrega recetas al plan.");
+  const have=new Set(state.ings);const out=[];
+  ids.forEach(id=>{const r=RECIPES.find(x=>x.id===id);r.ings.forEach(([ing,q])=>{if(!have.has(ing)&&!out.includes(ing))out.push(ing)})});
+  if(!out.length)return document.getElementById("planShopOut").innerHTML=`<div class="card" style="margin-top:14px">✅ ¡Tu refri cubre toda la semana!</div>`;
+  state.shop.push(...out.filter(id=>!state.shop.some(s=>s.id===id)).map(id=>({id,done:false})));saveLS();
+  document.getElementById("planShopOut").innerHTML=`<div class="card" style="margin-top:14px">✅ ${out.length} ingredientes agregados a la lista del súper. <button class="btn sm" onclick="show('shop')">Ver lista</button></div>`;
+};
+// hacer arrastrables las guardadas
+new MutationObserver(()=>{document.querySelectorAll("#savGrid .card").forEach((c,i)=>{const s=state.saved[i];if(!s)return;c.draggable=true;c.ondragstart=e=>e.dataTransfer.setData("id",s.id)})}).observe(document.getElementById("savGrid"),{childList:true,subtree:true});
+renderPlan();
+</script>
+</body>
+</html>
